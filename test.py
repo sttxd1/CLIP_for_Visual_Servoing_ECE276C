@@ -78,7 +78,7 @@ plateId = p.createMultiBody(baseMass=0,
                             baseOrientation=p.getQuaternionFromEuler([0,0,0]))
 # Place a box
 box_length, box_width, box_depth = 0.4, 0.4, 0.4
-box_pos_rel = np.array([0.5, -0.5, box_depth/2+0.05])
+box_pos_rel = np.array([0.5, -0.5, box_depth/2])
 target_box_center = plate_position + box_pos_rel
 geomBox = p.createCollisionShape(p.GEOM_BOX, halfExtents=[box_length/2, box_width/2, box_depth/2])
 visualBox = p.createVisualShape(p.GEOM_BOX, halfExtents=[box_length/2, box_width/2, box_depth/2],
@@ -91,7 +91,7 @@ boxId = p.createMultiBody(baseMass=0,
 
 # Place a blue sphere
 sphere_radius = 0.25
-sphere_pos_rel = np.array([-0.5, 0.5, sphere_radius+0.05])
+sphere_pos_rel = np.array([-1, 1, plate_thickness/2 + sphere_radius])
 sphere_position = plate_position + sphere_pos_rel
 geomSphere = p.createCollisionShape(p.GEOM_SPHERE, radius=0.5*sphere_radius)
 visualSphere = p.createVisualShape(p.GEOM_SPHERE, radius=sphere_radius, rgbaColor=[0,0,1,1])
@@ -104,26 +104,11 @@ sphereId = p.createMultiBody(baseMass=0,
 
 
 # Text description of the object to find
-object_type = input("Enter the object type (e.g., 'red cube', 'blue ball'): ")
-dynamic = int(input("Enter 0 for static, 1 for dynamic:"))
-
-target_description = f"The {object_type} on the green plane"
+target_description = "a red cube on the green plane"
 text_features = encode_text(target_description)
 
-if object_type == "red cube":
-    # Use the position of the box as the target object center
-    object_center = target_box_center
-    objId = boxId
-elif object_type == "blue ball":
-    # Use the position of the sphere as the target object center
-    object_center = sphere_position
-    objId = sphereId
-else:
-    print("Unknown object type, defaulting to box.")
-    object_center = target_box_center
-    objId = boxId
-
-
+# joint_limits_lower = [-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973]
+# joint_limits_upper = [2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973]
 
 K_p_x = 2                                                    #Proportional control gain for translation
 K_p_Omega = 2                                               #Proportional control gain for rotation  
@@ -133,16 +118,11 @@ ff_gain = 100 #100 61; 0 67
 log = False
 initial_flag = True
 error_ls = []
-sample_error_ls = []
-similarity_ls = []
 
 for ITER in range(200):
     p.stepSimulation()
-    if dynamic:
-        object_pos=[object_center[0]+motion_speed*np.sin(np.pi/2+ITER/10), object_center[1]+motion_speed*np.sin(ITER/20), object_center[2]]
-        p.resetBasePositionAndOrientation(objId,object_pos,p.getQuaternionFromEuler([0, 0, 0]))
-    else:
-        p.resetBasePositionAndOrientation(objId, object_center, p.getQuaternionFromEuler([0,0,0]))
+    object_center=[target_box_center[0]+motion_speed*np.sin(np.pi/2+ITER/10), target_box_center[1]+motion_speed*np.sin(ITER/20), plate_thickness/2]
+    p.resetBasePositionAndOrientation(boxId,object_center,p.getQuaternionFromEuler([0, 0, 0]))
     
     cameraPosition, cameraOrientation = robot.get_ee_position()
     rgb, depth = get_camera_img_float(cameraPosition, cameraOrientation)
@@ -177,14 +157,13 @@ for ITER in range(200):
     best_idx = similarities.argmax().item()
     best_box = candidate_boxes[best_idx]
     best_similarity = similarities[best_idx].item()
-    similarity_ls.append(best_similarity)
+
     # Now best_box corresponds to the region where CLIP thinks the described object is
     # Extract the center of this box as your target pixel location
     (x1, y1, x2, y2) = best_box
     u_px = (x1 + x2) // 2
     v_px = (y1 + y2) // 2
     object_loc=np.array([u_px, v_px])
-
 
     if initial_flag:
         # We are very confident in observation model, but not so much in motion model since we are not sure about the velocity
@@ -219,10 +198,8 @@ for ITER in range(200):
     cv2.circle(debug_img, (int(object_location_desired[0]), int(object_location_desired[1])), 5, (255,0,0), 2)
     cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 0, 0), 2)  # Red rectangle
     
+
     cv2.imshow("Camera RGB", debug_img)
-
-
-
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
     
@@ -232,9 +209,4 @@ for ITER in range(200):
 cv2.destroyAllWindows()    
 p.disconnect() 
 error_ls = np.array(error_ls)
-similarity_ls = np.array(similarity_ls)
-sample_error_ls = np.array(sample_error_ls)
 print('Mean Error:', np.mean(error_ls))
-
-
-

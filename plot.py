@@ -123,7 +123,8 @@ else:
     object_center = target_box_center
     objId = boxId
 
-
+# joint_limits_lower = [-2.8973, -1.7628, -2.8973, -3.0718, -2.8973, -0.0175, -2.8973]
+# joint_limits_upper = [2.8973, 1.7628, 2.8973, -0.0698, 2.8973, 3.7525, 2.8973]
 
 K_p_x = 2                                                    #Proportional control gain for translation
 K_p_Omega = 2                                               #Proportional control gain for rotation  
@@ -185,6 +186,8 @@ for ITER in range(200):
     v_px = (y1 + y2) // 2
     object_loc=np.array([u_px, v_px])
 
+    # if object_location_desired[0] >= x1 and object_location_desired[0] <= x2 and object_location_desired[1] >= y1 and object_location_desired[1] <= y2:
+    #     u_px,v_px = object_location_desired[0], object_location_desired[1]
 
     if initial_flag:
         # We are very confident in observation model, but not so much in motion model since we are not sure about the velocity
@@ -219,9 +222,13 @@ for ITER in range(200):
     cv2.circle(debug_img, (int(object_location_desired[0]), int(object_location_desired[1])), 5, (255,0,0), 2)
     cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 0, 0), 2)  # Red rectangle
     
+
     cv2.imshow("Camera RGB", debug_img)
 
-
+    if ITER%20 == 0:
+        filename = f'{object_type}_{str(dynamic)}_{str(ITER)}s.png'
+        sample_error_ls.append(np.linalg.norm(object_loc - object_location_desired))
+        cv2.imwrite(filename,debug_img)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
@@ -236,5 +243,27 @@ similarity_ls = np.array(similarity_ls)
 sample_error_ls = np.array(sample_error_ls)
 print('Mean Error:', np.mean(error_ls))
 
+import matplotlib.pyplot as plt
+def plot_final_results(roll_data, error_data):
+    """Create final summary plots of roll angle and tracking error"""
+    plt.figure(figsize=(12, 8))
+    
+    # Roll angle subplot
+    
+    # plt.plot(roll_data, 'b-', label='Sample error')
+    # plt.title('Visual Servo Sample Error')
+    
+    # Tracking error subplot
+    
+    plt.plot(error_data, 'r-', label='Tracking Error')
+    plt.title('Visual Servo Tracking Error')
+    plt.ylabel('Pixel Error')
+    plt.xlabel('Time Step')
+    plt.grid(True)
+    plt.legend()
+    
+    plt.tight_layout()
+    plt.show()
 
+plot_final_results(sample_error_ls,error_ls)
 
