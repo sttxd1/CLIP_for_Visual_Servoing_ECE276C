@@ -53,4 +53,5 @@ there will be instructions tell you things you need to enter:
 Enter the object type (e.g., 'red cube', 'blue ball'): example: red cube
 Enter 0 for static, 1 for dynamic: example: 0
 ```
-
+## Demo
+[![CLIP for Visual Servoing](https://img.youtube.com/vi/e4YYRRG2zdE/0.jpg)](https://youtu.be/e4YYRRG2zdE)
