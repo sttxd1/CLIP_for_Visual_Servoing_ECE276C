@@ -46,7 +46,7 @@ year = {2016--2021}
 ```bash
 $ git clone https://github.com/sttxd1/CLIP_for_Visual_Servoing_ECE276C.git -b main
 $ cd CLIP_for_Visual_Servoing_ECE276C
-$ main.py
+$ python3 main.py
 ```
 there will be instructions tell you things you need to enter:
 ```
